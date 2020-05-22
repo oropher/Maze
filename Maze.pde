@@ -1,70 +1,137 @@
+import java.util.List;
+import java.util.ArrayList;
 import java.util.ArrayDeque;
+import java.util.Deque;
 
-int rows = 20;
-int cols = 20;
-int rowSize;
-int colSize;
+int rows;
+int cols;
+int rowSize = 20;
+int colSize = 20;
 Cell cells[][];
+List<Cell> neighborsList = new ArrayList();
+Cell current;
+Deque<Cell> stack = new ArrayDeque();
 
 void setup(){
   size(501, 501);
-  rowSize = floor(height / rows);
-  colSize = floor(width / cols);
-  cells = new Cell[rowSize][colSize];
-  for(int i = 0; i<rowSize; i++){
-    for(int j = 0; j<colSize; j++){
-      cells[i][j] = new Cell(i*rowSize, j*colSize, rowSize, colSize);
+  frameRate(5);
+  rows = floor(height / rowSize);
+  cols = floor(width / colSize);
+  cells = new Cell[rows][cols];
+  for(int i = 0; i<rows; i++){
+    for(int j = 0; j<cols; j++){
+      cells[i][j] = new Cell(i, j, rowSize, colSize);
+      cells[i][j].show();
     }
   }
+  frameRate(300);
+  current = cells[0][0];
+  //evalCell(0, 0);
+  current.visited = true;
+  stack.push(current);
 }
 
 
 
 void draw(){
   background(51);
-  for(int i = 0; i<rowSize; i++){
-    for(int j = 0; j<colSize; j++){
+  for(int i = 0; i<rows; i++){
+    for(int j = 0; j<cols; j++){
       cells[i][j].show();
+    }
+  }
+  if(stack.size() > 0){
+    current = stack.pop();
+    current.hightlight();
+    if(hasUnvisitedNeighbors(current)){
+      stack.push(current);
+      Cell choosenCell = getUnvisitedNeighbor();
+      neighborsList.clear();
+      removeWalls(current, choosenCell);
+      choosenCell.visited = true;
+      stack.push(choosenCell);
     }
   }
 }
 
 void evalCell(int x, int y){
-  Deque<Cell> stack = new ArrayDeque<>();
+  //println("Comienza con: "+ x + ", " + y);
+  Deque<Cell> stack = new ArrayDeque();
   cells[x][y].visited = true;
   stack.push(cells[x][y]);
   while(!stack.isEmpty()){
     Cell currentCell = stack.pop();
-    if(hasUnvisitedNeighbours(currentCell)){
+    currentCell.hightlight();
+    delay(100);
+    if(hasUnvisitedNeighbors(currentCell)){
       stack.push(currentCell);
-      boolean wasVisited = false;
-      Cell choosenCell = null;
-      while(!wasVisited){
-        int xtemp = int(random(currentCell.x-1, currentCell.x+1));
-        int ytemp = int(random(currentCell.y-1, currentCell.y+1));
-        if((xtemp != currentCell.x && ytemp != currentCell.y) && xtemp >= 0 && xtemp < rowSize && ytemp >= 0 && xtemp < colSize){
-          if(!cells[xtemp][ytemp].visited){
-            choosenCell = cells[xtem][ytemp];
-          }
-        }
-      }
+      Cell choosenCell = getUnvisitedNeighbor();
+      neighborsList.clear();
+      removeWalls(currentCell, choosenCell);
+      choosenCell.visited = true;
+      choosenCell.show();
+      stack.push(choosenCell);
     }
   }
 }
 
-boolean hasUnvisitedNeighbours(Cell cell){
+
+public void removeWalls(Cell current, Cell choosen){
+  int x = current.x - choosen.x;
+  if(x == 1){
+    current.walls[3] = false;
+    choosen.walls[1] = false; 
+  } else if(x==-1){
+    current.walls[1] = false;
+    choosen.walls[3] = false;
+  }
+  int y = current.y - choosen.y;
+  if(y == 1){
+    current.walls[0] = false;
+    choosen.walls[2] = false; 
+  } else if(y==-1){
+    current.walls[2] = false;
+    choosen.walls[0] = false;
+  } 
+}
+
+
+public Cell getUnvisitedNeighbor(){
+  int i = floor(random(0, neighborsList.size()));
+  return neighborsList.get(i);
+}
+
+
+boolean hasUnvisitedNeighbors(Cell cell){
   int x = cell.x;
   int y = cell.y;
-  for(int i=x-1; i<=x+1; i++){
-    for(int j=y-1; j<=y+1; j++){
-      if(i>=0 && i<rowSize && j>=0 && j<colSize){
-        if(cells[i][j].visited){
-          return true;
-        }
-      }
-    }
+  Cell top = getCellAt(x, y-1);
+  Cell right = getCellAt(x+1, y);
+  Cell bottom = getCellAt(x, y+1);
+  Cell left = getCellAt(x-1, y);
+  if(top != null && !top.visited){
+    neighborsList.add(top);
+  }
+  if(right!= null && !right.visited){
+    neighborsList.add(right);
+  }
+  if(bottom!= null && !bottom.visited){
+    neighborsList.add(bottom);
+  }
+  if(left!= null && !left.visited){
+    neighborsList.add(left);
+  }
+  if(!neighborsList.isEmpty()){
+    return true;
   }
   return false;
+}
+
+public Cell getCellAt(int x, int y){
+  if(x<0 || y<0 || x>cols-1 || y>rows-1){
+   return null;
+  }
+  return cells[x][y];
 }
 
 class Cell {
@@ -84,60 +151,37 @@ class Cell {
   }
 
   public void show(){
+    int i = x*colSize;
+    int j = y*rowSize;
+    if(this.visited){
+      noStroke();
+      fill(50, 125, 168);
+      rect(i, j, rowSize, colSize);
+    }
     stroke(255);
     if(walls[0]){
-      line(x, y, x+colSize, y);
+      line(i, j, i+colSize, j);
     }
     if(walls[1]){
-      line(x+colSize, y, x+colSize, y+rowSize);
+      line(i+colSize, j, i+colSize, j+rowSize);
     }
     if(walls[2]){
-      line(x+colSize, y+rowSize, x, y+rowSize);
+      line(i+colSize, j+rowSize, i, j+rowSize);
     }
     if(walls[3]){
-      line(x, y+rowSize, x, y);
+      line(i, j+rowSize, i, j);
     }
   }
+  
+  public void hightlight(){
+    int i = x*colSize;
+    int j = y*rowSize;
+    noStroke();
+    fill(0, 0, 255, 100);
+    rect(i, j, rowSize, colSize);
+  }
+  
+  public String toString(){
+    return "x,y: " + x +", " + y + " walls: " + walls[0] + ", " + walls[1] + ", " + walls[2] + ", " + walls[3];
+  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
