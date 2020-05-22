@@ -5,8 +5,8 @@ import java.util.Deque;
 
 int rows;
 int cols;
-int rowSize = 20;
-int colSize = 20;
+int rowSize = 10;
+int colSize = 10;
 Cell cells[][];
 List<Cell> neighborsList = new ArrayList();
 Cell current;
@@ -25,10 +25,17 @@ void setup(){
     }
   }
   frameRate(300);
+  noLoop();
   current = cells[0][0];
   //evalCell(0, 0);
   current.visited = true;
   stack.push(current);
+}
+
+void keyPressed() {
+  if (key == ENTER) {
+    loop();
+  }
 }
 
 
